@@ -112,7 +112,7 @@ class ProInput(TextInput):
 class ItemCard(BoxLayout):
     """Displays an item with an edit button."""
 
-    def __init__(self, name, desc, index, **kwargs):
+    def __init__(self, name, desc, mac, index, **kwargs):
         super().__init__(**kwargs)
         self.index = index
         self.orientation = 'horizontal'  # Side by side
@@ -149,6 +149,17 @@ class ItemCard(BoxLayout):
             size_hint_y=0.4,
             max_lines=1,
             text_size=(self.width, None)  # Placeholder
+        ))
+        
+        # MAC Address
+        text_content.add_widget(Label(
+            text=f"{desc}\nMAC: {mac}",
+            font_size=dp(14),
+            color=THEME["text_secondary"],
+            halign='left',
+            valign='top',
+            size_hint_y=0.4,
+            text_size=(self.width, None)
         ))
 
         self.add_widget(text_content)
@@ -240,7 +251,7 @@ class LoginScreen(Screen):
         # Inputs
         input_container = BoxLayout(orientation='vertical', spacing=dp(
             15), size_hint_y=None, height=dp(130))
-        self.username = ProInput(hint_text="Email Address")
+        self.username = ProInput(hint_text="Username")
         self.password = ProInput(hint_text="Password", password=True)
         input_container.add_widget(self.username)
         input_container.add_widget(self.password)
@@ -300,7 +311,7 @@ class LoginScreen(Screen):
         pwd = self.password.text.strip()
 
         if not user or not pwd:
-            self.feedback_lbl.text = "Please enter both Email Address and password."
+            self.feedback_lbl.text = "Please enter both username and password."
             self.feedback_lbl.color = THEME["danger"]
             return
 
@@ -311,7 +322,7 @@ class LoginScreen(Screen):
                 self.username.text = ""
                 self.password.text = ""
             else:
-                self.feedback_lbl.text = "Invalid Email Address or password."
+                self.feedback_lbl.text = "Invalid username or password."
                 self.feedback_lbl.color = THEME["danger"]
         else:  # signup
             if self.db.create_user(user, pwd):
@@ -322,7 +333,7 @@ class LoginScreen(Screen):
                 self.username.text = user  # Keep username filled
                 self.password.text = ""
             else:
-                self.feedback_lbl.text = "Email Address already exists."
+                self.feedback_lbl.text = "Username already exists."
                 self.feedback_lbl.color = THEME["danger"]
 
 
@@ -351,6 +362,8 @@ class AddItemScreen(Screen):
         self.item_name = ProInput(hint_text="Item Name (e.g. Wallet)")
         self.item_desc = ProInput(
             hint_text="Description (e.g. Leather, brown)")
+        self.item_mac = ProInput(hint_text="MAC Address (e.g. AA:BB:CC:DD:EE:FF)")
+        form.add_widget(self.item_mac)
         form.add_widget(self.item_name)
         form.add_widget(self.item_desc)
         root.add_widget(form)
@@ -386,10 +399,12 @@ class AddItemScreen(Screen):
     def save_item(self, instance):
         name = self.item_name.text.strip()
         desc = self.item_desc.text.strip()
+        mac = self.item_mac.text.strip()
         if name:
             items_list.append({
                 "name": name,
-                "desc": desc
+                "desc": desc,
+                "mac": mac
             })
             self.manager.get_screen('main').update_items_list()
             self.cancel(instance)
@@ -397,6 +412,7 @@ class AddItemScreen(Screen):
     def clear_inputs(self):
         self.item_name.text = ""
         self.item_desc.text = ""
+        self.item_mac.text = ""
 
 
 class EditItemScreen(Screen):
@@ -424,6 +440,8 @@ class EditItemScreen(Screen):
             20), size_hint_y=None, height=dp(200))
         self.item_name = ProInput(hint_text="Item Name")
         self.item_desc = ProInput(hint_text="Description")
+        self.item_mac = ProInput(hint_text="MAC Address")
+        form.add_widget(self.item_mac)
         form.add_widget(self.item_name)
         form.add_widget(self.item_desc)
         root.add_widget(form)
@@ -467,6 +485,7 @@ class EditItemScreen(Screen):
         self.edit_index = index
         self.item_name.text = item_data['name']
         self.item_desc.text = item_data.get('desc', '')
+        self.item_mac.text = item_data.get('mac', '')
 
     def cancel(self, instance):
         self.manager.current = 'main'
@@ -475,10 +494,12 @@ class EditItemScreen(Screen):
     def save_item(self, instance):
         name = self.item_name.text.strip()
         desc = self.item_desc.text.strip()
-        if self.edit_index is not None and name:
+        mac = self.item_mac.text.strip()
+        if self.edit_index is not None and name and mac:
             items_list[self.edit_index] = {
                 "name": name,
-                "desc": desc
+                "desc": desc,
+                "mac": mac
             }
             self.manager.get_screen('main').update_items_list()
             self.cancel(instance)
@@ -763,7 +784,8 @@ class MainScreen(Screen):
             return
 
         for index, item in enumerate(items_list):
-            card = ItemCard(item['name'], item.get('desc', ''), index)
+            card = ItemCard(item['name'], item.get('desc', ''), 
+                                item.get('mac', ''), index)
             self.items_grid.add_widget(card)
 
     def open_edit_screen(self, index):
@@ -804,3 +826,4 @@ class EverydayCarryApp(App):
 
 if __name__ == "__main__":
     EverydayCarryApp().run()
+
